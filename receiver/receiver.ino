@@ -1,77 +1,99 @@
-// Receiver Arduino Code
-#define SENSOR_PIN A0
+const int photoPin = A0;
+const int ledPin = 9;
+const int threshold = 600;
 
-String letterBuffer = "";  // Stores dots/dashes for one letter
-String morseBuffer = "";  // Stores decoded letters
-char decodedMessage[100];  // Stores final message
-int msgIndex = 0;
-unsigned long lastTime = 0;
+bool lastState = false;
+unsigned long lastChangeTime = 0;
+unsigned long currentTime = 0;
+unsigned long lastActivityTime = 0;
 
-// Morse code lookup table (A-Z)
-const char* morseCode[] = {
+String currentSymbol = "";
+String fullMessage = "";
+
+// Morse code lookup
+String morseLetters[] = {
   ".-", "-...", "-.-.", "-..", ".", "..-.", "--.", "....", "..", ".---",
   "-.-", ".-..", "--", "-.", "---", ".--.", "--.-", ".-.", "...", "-",
   "..-", "...-", ".--", "-..-", "-.--", "--.."
 };
+char alphabet[] = {
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J',
+  'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T',
+  'U', 'V', 'W', 'X', 'Y', 'Z'
+};
 
-// User-defined function: Decodes a Morse letter
-void decodeLetter() {
-  for (int i = 0; i < 26; i++) {
-    if (letterBuffer == morseCode[i]) {
-      char letter = 'A' + i;
-      morseBuffer += letter;
-      decodedMessage[msgIndex++] = letter;
-      printMessage();
-      break;
-    }
-  }
-  letterBuffer = "";
-}
-
-// User-defined function: Prints the decoded message
-void printMessage() {
-  Serial.print("Received: ");
-  for (int i = 0; i < msgIndex; i++) {
-    Serial.print(decodedMessage[i]);
-  }
-  Serial.println();
-}
+bool endDecoded = false;  // To prevent double-decoding
 
 void setup() {
+  pinMode(ledPin, OUTPUT);
   Serial.begin(9600);
-  pinMode(SENSOR_PIN, INPUT);
+  Serial.println("Receiver ready. Listening for Morse...");
 }
 
 void loop() {
-  int sensorValue = analogRead(SENSOR_PIN);
-  bool isLightOn = sensorValue > 600;  // Adjust threshold after testing
+  int lightValue = analogRead(photoPin);
+  int invertedLight = 1023 - lightValue;
+  currentTime = millis();
 
-  unsigned long currentTime = millis();
+  bool currentState = invertedLight > threshold;
 
-  // Detect start of a pulse (laser ON)
-  if (isLightOn && lastTime == 0) {
-    lastTime = currentTime;
-  }
-  // Detect end of a pulse (laser OFF)
-  else if (!isLightOn && lastTime != 0) {
-    unsigned long duration = currentTime - lastTime;
-    if (duration > 100 && duration < 400) {
-      letterBuffer += ".";  // Dot (200ms ± 100ms)
-    } else if (duration > 400 && duration < 800) {
-      letterBuffer += "-";  // Dash (600ms ± 200ms)
+  if (currentState != lastState) {
+    unsigned long duration = currentTime - lastChangeTime;
+
+    if (currentState == true) {
+      if (duration >= 1600) {
+        decodeCurrentSymbol();
+        fullMessage += " ";
+        Serial.println("[ Word Gap ]");
+      } else if (duration >= 800) {
+        decodeCurrentSymbol();
+        Serial.println("[ Letter Gap ]");
+      }
+    } else {
+      if (duration < 600) {
+        currentSymbol += ".";
+        Serial.println("Detected DOT");
+      } else {
+        currentSymbol += "-";
+        Serial.println("Detected DASH");
+      }
     }
-    lastTime = 0;
+
+    lastChangeTime = currentTime;
+    lastActivityTime = currentTime;
+    lastState = currentState;
+    endDecoded = false;
   }
 
-  // Detect gaps to end a letter or word
-  if (!isLightOn && letterBuffer != "" && currentTime - lastTime > 400 && lastTime != 0) {
-    decodeLetter();
-    lastTime = 0;
+  // Decode if idle for 2 seconds
+  if (!endDecoded && (currentTime - lastActivityTime) > 2000 && currentSymbol.length() > 0) {
+    decodeCurrentSymbol();
+    Serial.println("=== End of Transmission ===");
+    Serial.print("Full Message: ");
+    Serial.println(fullMessage);
+    endDecoded = true;
   }
-  if (!isLightOn && morseBuffer != "" && currentTime - lastTime > 1200 && lastTime != 0) {
-    morseBuffer = "";
-    decodedMessage[msgIndex++] = ' ';
-    printMessage();
-    lastTime = 0;
+
+  digitalWrite(ledPin, currentState ? LOW : HIGH);
+  delay(10);
+}
+
+void decodeCurrentSymbol() {
+  if (currentSymbol.length() == 0) return;
+
+  char decoded = '?';
+  for (int i = 0; i < 26; i++) {
+    if (currentSymbol == morseLetters[i]) {
+      decoded = alphabet[i];
+      break;
+    }
   }
+
+  Serial.print("Decoded Letter: ");
+  Serial.println(decoded);
+  fullMessage += decoded;
+  currentSymbol = "";
+
+  Serial.print("Current Message: ");
+  Serial.println(fullMessage);
 }
