@@ -16,12 +16,21 @@
 
 Below are photos of the Arduino setup used in this project.
 
-![Arduino view 1](media/2.jpeg)
-*Figure 1 — Front/top view*
+<!-- Images reduced in size and aligned side-by-side -->
+<div style="display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap;">
+  <figure style="margin:0; text-align:center;">
+    <img src="media/1.jpeg" alt="Arduino view 1" style="width:240px; max-width:30vw; height:auto; border:1px solid #ddd; padding:4px;">
+    <figcaption style="font-size:0.9em; margin-top:6px;">Figure 1 — Front/top view</figcaption>
+  </figure>
 
-![Arduino view 2](media/3.jpeg)
-*Figure 2 — Side/wiring view*
+  <figure style="margin:0; text-align:center;">
+    <img src="media/2.jpeg" alt="Arduino view 2" style="width:240px; max-width:30vw; height:auto; border:1px solid #ddd; padding:4px;">
+    <figcaption style="font-size:0.9em; margin-top:6px;">Figure 2 — Side/wiring view</figcaption>
+  </figure>
 
-![Arduino view 3](media/1.jpeg)
-*Figure 3 — Close-up of connections*
+  <figure style="margin:0; text-align:center;">
+    <img src="media/3.jpeg" alt="Arduino view 3" style="width:240px; max-width:30vw; height:auto; border:1px solid #ddd; padding:4px;">
+    <figcaption style="font-size:0.9em; margin-top:6px;">Figure 3 — Close-up of connections</figcaption>
+  </figure>
+</div>
 
